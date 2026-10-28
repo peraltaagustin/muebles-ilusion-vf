@@ -5,13 +5,13 @@ import Image from 'next/image';
 import { CreditCard, Truck, BedDouble, LayoutPanelLeft } from 'lucide-react';
 import Footer from '@/components/Footer';
 
-// IMPORTACIÓN DINÁMICA: Obliga a Next.js a ignorar esto en el servidor de Vercel y cargarlo solo en el navegador
-const SlideBanners = dynamic(() => import('@/components/Carruseles').then(mod => mod.SlideBanners), { 
+// La magia ocurre aquí: { ssr: false } desactiva el renderizado en servidor
+const SlideBanners = dynamic(() => import('@/components/ClientCarousel').then((mod) => mod.SlideBanners), { 
   ssr: false, 
   loading: () => <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">Cargando Banners...</div> 
 });
 
-const CarouselOft = dynamic(() => import('@/components/Carruseles').then(mod => mod.CarouselOft), { 
+const CarouselOft = dynamic(() => import('@/components/ClientCarousel').then((mod) => mod.CarouselOft), { 
   ssr: false,
   loading: () => <div className="w-full h-48 bg-gray-200 animate-pulse rounded-xl"></div>
 });
