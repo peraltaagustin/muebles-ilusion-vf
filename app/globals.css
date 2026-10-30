@@ -1,11 +1,8 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 body {
   background-color: #f5f5f5;
   color: #1a1a1a;
-  font-family: Arial, Helvetica, sans-serif;
 }
 
 /* Ocultar barra de scroll horizontal en categorías */

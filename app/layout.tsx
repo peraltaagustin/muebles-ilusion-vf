@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
-import "./globals.css"; // Esto debe ir primero para cargar todos los estilos de Tailwind
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { CartProvider } from "@/context/CartContext";
+
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Muebles Ilusión - Placares y Colchones Taurus",
-  description: "Equipá tu hogar con las mejores ofertas, placares a medida y colchones Taurus en 3 cuotas sin interés.",
+  title: "Muebles Ilusión",
+  description: "40 años equipando tu hogar",
 };
 
 export default function RootLayout({
@@ -13,8 +17,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body className="antialiased bg-gray-50 text-gray-900">
-        {children}
+      <body className={`${inter.className} bg-[#f5f5f5] text-gray-900 antialiased`}>
+        {/* Envolvemos la app en el CartProvider */}
+        <CartProvider>
+          {children}
+        </CartProvider>
       </body>
     </html>
   );
