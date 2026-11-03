@@ -382,6 +382,7 @@ export default function AdminDashboard() {
               </div>
             </div>
           )}
+          
 
           {/* ----- PESTAÑA: PEDIDOS ----- */}
           {activeTab === 'pedidos' && (
