@@ -382,7 +382,7 @@ export default function AdminDashboard() {
               </div>
             </div>
           )}
-          
+          // Comentario de prueba para forzar commit en GitHub
 
           {/* ----- PESTAÑA: PEDIDOS ----- */}
           {activeTab === 'pedidos' && (
