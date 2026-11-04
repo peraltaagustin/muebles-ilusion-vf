@@ -23,6 +23,13 @@ type Producto = {
   envio_gratis_las_heras?: boolean;
   retiro_sucursal?: boolean;
   cuotas?: boolean;
+  destacado?: boolean;
+};
+
+// Nuevo tipo para los banners
+type Banner = {
+  id: string;
+  imagen_url: string;
 };
 
 export default function AdminDashboard() {
@@ -44,6 +51,14 @@ export default function AdminDashboard() {
   const [isAjusteModalOpen, setIsAjusteModalOpen] = useState(false);
   const [porcentajeAjuste, setPorcentajeAjuste] = useState('');
   const [tipoAjuste, setTipoAjuste] = useState<'aumento' | 'descuento'>('aumento');
+
+  // --- ESTADOS PARA BANNERS ---
+  const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
+  const [banners, setBanners] = useState<Banner[]>([]);
+  const [cargandoBanners, setCargandoBanners] = useState(false);
+  const [nuevoBannerArchivo, setNuevoBannerArchivo] = useState<File | null>(null);
+  const [nuevoBannerUrl, setNuevoBannerUrl] = useState('');
+  const bannerFileInputRef = useRef<HTMLInputElement>(null);
 
   const [categoriasExistentes, setCategoriasExistentes] = useState<string[]>([]);
   const [subcategoriasExistentes, setSubcategoriasExistentes] = useState<string[]>([]);
@@ -75,6 +90,7 @@ export default function AdminDashboard() {
   const [envioGratisLasHeras, setEnvioGratisLasHeras] = useState(false);
   const [retiroSucursal, setRetiroSucursal] = useState(false);
   const [cuotas, setCuotas] = useState(false);
+  const [destacado, setDestacado] = useState(false);
   
   const [archivosImagen, setArchivosImagen] = useState<File[]>([]);
   const [urlsImagen, setUrlsImagen] = useState<string[]>([]);
@@ -95,7 +111,17 @@ export default function AdminDashboard() {
     setCargandoTabla(false);
   };
 
-  useEffect(() => { fetchProductos(); }, []);
+  // --- FUNCIÓN FETCH BANNERS ---
+  const fetchBanners = async () => {
+    const { data } = await supabase.from('banners').select('*').order('created_at', { ascending: false });
+    if (data) setBanners(data);
+  };
+
+  useEffect(() => { 
+    fetchProductos(); 
+    fetchBanners();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const catActual = categoria === 'NUEVA' ? nuevaCategoria : categoria;
@@ -137,6 +163,58 @@ export default function AdminDashboard() {
     setCargando(false); setIsAjusteModalOpen(false); setSeleccionados([]); setPorcentajeAjuste(''); fetchProductos();
   };
 
+  // --- FUNCIONES PARA BANNERS ---
+  const handleGuardarBanner = async () => {
+    if (!nuevoBannerArchivo && !nuevoBannerUrl.trim()) return;
+    setCargandoBanners(true);
+
+    let urlFinal = nuevoBannerUrl.trim();
+
+    // 1. Si hay archivo físico, lo subimos al bucket 'banners'
+    if (nuevoBannerArchivo) {
+      const fileExt = nuevoBannerArchivo.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage.from('banners').upload(fileName, nuevoBannerArchivo);
+      
+      if (!uploadError) {
+        urlFinal = supabase.storage.from('banners').getPublicUrl(fileName).data.publicUrl;
+      } else {
+        alert('Error al subir la imagen: ' + uploadError.message);
+        setCargandoBanners(false);
+        return;
+      }
+    }
+
+    // 2. Guardamos la URL final en la tabla
+    if (urlFinal) {
+      const { error } = await supabase.from('banners').insert([{ imagen_url: urlFinal }]);
+      if (error) {
+        alert('Error al guardar el banner en base de datos: ' + error.message);
+      } else {
+        setNuevoBannerArchivo(null);
+        setNuevoBannerUrl('');
+        fetchBanners(); // Recargar lista
+      }
+    }
+    setCargandoBanners(false);
+  };
+
+  const handleEliminarBanner = async (id: string, url: string) => {
+    if (!window.confirm('¿Estás seguro de eliminar este banner?')) return;
+    
+    // 1. Borrar de la tabla
+    const { error } = await supabase.from('banners').delete().eq('id', id);
+    
+    if (!error) {
+       // 2. Borrar del bucket (Storage) si la imagen está alojada en Supabase
+       if (url.includes('supabase.co')) {
+          const fileName = url.split('/').pop();
+          if (fileName) await supabase.storage.from('banners').remove([fileName]);
+       }
+       fetchBanners(); // Recargar lista
+    }
+  };
+
   const agregarColor = () => {
     const c = colorInput === 'NUEVO' ? nuevoColor.trim() : colorInput;
     if (c && !coloresSeleccionados.includes(c)) setColoresSeleccionados([...coloresSeleccionados, c]);
@@ -164,6 +242,7 @@ export default function AdminDashboard() {
     setStock(prod.stock.toString()); setColoresSeleccionados(prod.colores ? prod.colores.split(',').map(c => c.trim()) : []);
     setEnvioGratis(prod.envio_gratis || false); setEnvioGratisLasHeras(prod.envio_gratis_las_heras || false);
     setRetiroSucursal(prod.retiro_sucursal || false); setCuotas(prod.cuotas || false);
+    setDestacado(prod.destacado || false); // <--- Cargar estado destacado
     setUrlsImagen(prod.imagenes || (prod.imagen ? [prod.imagen] : [])); setArchivosImagen([]);
     setIsModalOpen(true);
   };
@@ -172,7 +251,7 @@ export default function AdminDashboard() {
     setProductoEditando(null); setTitulo(''); setDescripcion(''); setCategoria(''); setNuevaCategoria(''); setSubcategoria(''); setNuevaSubcategoria(''); setMarca(''); setNuevaMarca(''); setProveedor(''); setNuevoProveedor(''); 
     setPrecio(''); setPrecioLista(''); setPrecioTachado(''); 
     setStock(''); setColoresSeleccionados([]); setColorInput(''); setNuevoColor(''); 
-    setEnvioGratis(false); setEnvioGratisLasHeras(false); setRetiroSucursal(false); setCuotas(false); 
+    setEnvioGratis(false); setEnvioGratisLasHeras(false); setRetiroSucursal(false); setCuotas(false); setDestacado(false); // <--- Resetear destacado
     setArchivosImagen([]); setUrlsImagen([]); setUrlInput('');
   };
 
@@ -209,7 +288,8 @@ export default function AdminDashboard() {
       envio_gratis: envioGratis, 
       envio_gratis_las_heras: envioGratisLasHeras,
       retiro_sucursal: retiroSucursal, 
-      cuotas, 
+      cuotas,
+      destacado, // <--- Guardar valor destacado en DB
       imagen: imagenPrincipal, 
       imagenes: urlsFinales
     };
@@ -347,7 +427,10 @@ export default function AdminDashboard() {
                               <div className="w-12 h-12 relative bg-white rounded border flex-shrink-0 overflow-hidden">
                                 <Image src={prod.imagen || "/vestidor.png"} alt={prod.titulo} fill className="object-contain" sizes="48px" />
                               </div>
-                              <span className="font-medium text-gray-900 line-clamp-2 max-w-[200px]">{prod.titulo}</span>
+                              <span className="font-medium text-gray-900 line-clamp-2 max-w-[200px]">
+                                {prod.titulo}
+                                {prod.destacado && <span className="ml-2 inline-block px-1.5 py-0.5 bg-yellow-100 text-yellow-800 text-[10px] font-bold rounded">DESTACADO</span>}
+                              </span>
                             </td>
                             <td className="p-4 text-xs">
                               <p className="font-semibold text-gray-800">{prod.categoria}</p>
@@ -382,7 +465,6 @@ export default function AdminDashboard() {
               </div>
             </div>
           )}
-          // Comentario de prueba para forzar commit en GitHub
 
           {/* ----- PESTAÑA: PEDIDOS ----- */}
           {activeTab === 'pedidos' && (
@@ -405,7 +487,7 @@ export default function AdminDashboard() {
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                   <h3 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">Banners de Inicio</h3>
                   <p className="text-sm text-gray-500 mb-4">Agrega o quita las imágenes promocionales que se muestran en el carrusel de la página principal.</p>
-                  <button className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-50 text-sm font-semibold text-[#e60000] transition-colors">
+                  <button onClick={() => setIsBannerModalOpen(true)} className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-50 text-sm font-semibold text-[#e60000] transition-colors">
                     <ImageIcon size={18} /> Gestionar Banners
                   </button>
                 </div>
@@ -431,6 +513,64 @@ export default function AdminDashboard() {
           )}
 
           {/* ----- MODALES ----- */}
+
+          {/* MODAL: GESTIÓN DE BANNERS */}
+          {isBannerModalOpen && (
+            <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                  <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2"><ImageIcon size={20} className="text-[#e60000]"/> Gestionar Banners Principales</h3>
+                  <button onClick={() => setIsBannerModalOpen(false)} className="text-gray-400 hover:text-gray-700"><X size={20} /></button>
+                </div>
+                
+                <div className="p-6 overflow-y-auto max-h-[70vh]">
+                  {/* Formulario para agregar banner */}
+                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
+                    <h4 className="text-sm font-bold text-gray-800 mb-3">Agregar nuevo banner</h4>
+                    <div className="flex flex-col md:flex-row gap-4 items-end">
+                      <div className="flex-1 w-full">
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">Subir desde PC</label>
+                        <input type="file" accept="image/*" ref={bannerFileInputRef} onChange={e => setNuevoBannerArchivo(e.target.files?.[0] || null)} className="hidden" />
+                        <button type="button" onClick={() => bannerFileInputRef.current?.click()} className="w-full py-2.5 border border-gray-300 bg-white rounded-lg text-sm text-gray-700 hover:bg-gray-100 flex justify-center gap-2 items-center transition-colors">
+                          <Upload size={18} /> {nuevoBannerArchivo ? nuevoBannerArchivo.name : 'Seleccionar Archivo'}
+                        </button>
+                      </div>
+                      <div className="flex-1 w-full">
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">O pegar enlace directo (URL)</label>
+                        <input type="url" value={nuevoBannerUrl} onChange={e => setNuevoBannerUrl(e.target.value)} placeholder="https://..." className="w-full border rounded-lg p-2.5 text-sm outline-none focus:border-[#e60000] bg-white" />
+                      </div>
+                      <button type="button" onClick={handleGuardarBanner} disabled={cargandoBanners || (!nuevoBannerArchivo && !nuevoBannerUrl.trim())} className="px-5 py-2.5 bg-[#e60000] text-white rounded-lg font-bold text-sm disabled:opacity-50 flex items-center gap-2 justify-center w-full md:w-auto hover:bg-red-700 transition-colors">
+                        {cargandoBanners ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />} Agregar
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Lista de banners activos */}
+                  <h4 className="text-sm font-bold text-gray-800 mb-3">Banners Activos ({banners.length})</h4>
+                  {banners.length === 0 ? (
+                    <p className="text-sm text-gray-500 text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">No hay banners cargados actualmente.</p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {banners.map((banner) => (
+                        <div key={banner.id} className="relative group border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
+                          <div className="relative w-full h-32 bg-gray-100">
+                            <Image src={banner.imagen_url} alt="Banner Promocional" fill className="object-cover" unoptimized={banner.imagen_url.includes('http')} />
+                          </div>
+                          <button onClick={() => handleEliminarBanner(banner.id, banner.imagen_url)} className="absolute top-2 right-2 p-2 bg-white/90 backdrop-blur text-gray-500 hover:text-red-600 rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transition-all hover:bg-red-50" title="Eliminar Banner">
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end">
+                  <button onClick={() => setIsBannerModalOpen(false)} className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-bold hover:bg-gray-100 transition-colors">Cerrar</button>
+                </div>
+              </div>
+            </div>
+          )}
           
           {/* MODAL: AJUSTE MASIVO DE PRECIOS */}
           {isAjusteModalOpen && (
@@ -571,7 +711,7 @@ export default function AdminDashboard() {
                       </div>
                     </div>
 
-                    {/* 4. BENEFICIOS */}
+                    {/* 4. BENEFICIOS Y DESTACADOS */}
                     <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
                       <h4 className="text-sm font-bold text-[#e60000] mb-4 uppercase tracking-wider">4. Beneficios y Logística</h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -579,6 +719,15 @@ export default function AdminDashboard() {
                         <label className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50"><input type="checkbox" checked={envioGratis} onChange={e => setEnvioGratis(e.target.checked)} className="w-5 h-5 accent-[#e60000]" /> <span className="text-sm font-medium text-gray-800">Envío Gratis (General)</span></label>
                         <label className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50"><input type="checkbox" checked={envioGratisLasHeras} onChange={e => setEnvioGratisLasHeras(e.target.checked)} className="w-5 h-5 accent-[#e60000]" /> <span className="text-sm font-medium text-gray-800">Envío Gratis Las Heras</span></label>
                         <label className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50"><input type="checkbox" checked={retiroSucursal} onChange={e => setRetiroSucursal(e.target.checked)} className="w-5 h-5 accent-[#e60000]" /> <span className="text-sm font-medium text-gray-800">Retiro en Sucursal</span></label>
+                        
+                        {/* Nuevo check para Destacado */}
+                        <label className="flex items-center gap-3 p-3 border border-yellow-300 bg-yellow-50 rounded-lg hover:bg-yellow-100 col-span-1 sm:col-span-2 mt-2">
+                          <input type="checkbox" checked={destacado} onChange={e => setDestacado(e.target.checked)} className="w-5 h-5 accent-yellow-600" /> 
+                          <div>
+                            <span className="text-sm font-bold text-yellow-900 block">Destacar en Inicio (Ofertas)</span>
+                            <span className="text-xs text-yellow-700">El producto aparecerá en el carrusel de Ofertas Destacadas en la página principal.</span>
+                          </div>
+                        </label>
                       </div>
                     </div>
 

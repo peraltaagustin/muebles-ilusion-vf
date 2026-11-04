@@ -9,24 +9,61 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase';
 
+interface BannerDB {
+  id: string;
+  imagen_url: string;
+}
+
 export function BannerSlider() {
-const banners = [
-    { id: 1, src: "/banner-ofertas.png", alt: "Ofertas Increíbles", link: "/catalogo" },
-    { id: 2, src: "/Especial-Placares.png", alt: "Especial Placares", link: "/catalogo?cat=Placares" },
-    { id: 3, src: "/banner-taurus.png", alt: "Colchones Taurus", link: "/catalogo?cat=Colchones" },
-  ];
+  const [banners, setBanners] = useState<{ id: string | number, src: string, alt: string, link: string }[]>([]);
+  const supabase = createClient();
+
+  useEffect(() => {
+    const fetchBanners = async () => {
+      const { data } = await supabase.from('banners').select('*').order('created_at', { ascending: false });
+      
+      if (data && data.length > 0) {
+        const bannersFormat = data.map((b: BannerDB) => ({
+          id: b.id,
+          src: b.imagen_url,
+          alt: "Banner Promocional",
+          link: "/catalogo"
+        }));
+        setBanners(bannersFormat);
+      } else {
+        setBanners([
+          { id: 1, src: "/banner-ofertas.png", alt: "Ofertas Increíbles", link: "/catalogo" },
+          { id: 2, src: "/Especial-Placares.png", alt: "Especial Placares", link: "/catalogo?cat=Placares" },
+          { id: 3, src: "/banner-taurus.png", alt: "Colchones Taurus", link: "/catalogo?cat=Colchones" },
+        ]);
+      }
+    };
+    fetchBanners();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (banners.length === 0) return <div className="w-full h-full bg-gray-100 flex items-center justify-center animate-pulse">Cargando banners...</div>;
+
   return (
-    <Swiper
+   <Swiper
       modules={[Autoplay, Pagination, Navigation]}
       pagination={{ clickable: true }}
       navigation
       autoplay={{ delay: 5000 }}
-      className="w-full h-full"
+      className="w-full h-[180px] sm:h-[250px] md:h-[300px] lg:h-[380px]"
     >
-      {banners.map((ban) => (
-        <SwiperSlide key={ban.id} className="relative w-full h-full bg-white flex items-center justify-center">
+      {banners.map((ban, index) => (
+        <SwiperSlide key={ban.id} className="relative w-full h-full bg-gray-100 flex items-center justify-center overflow-hidden">
           <Link href={ban.link} className="relative w-full h-full block">
-            <Image src={ban.src} alt={ban.alt} fill sizes="100vw" className="object-cover" priority={ban.id === 1} />
+            <Image 
+              src={ban.src} 
+              alt={ban.alt} 
+              fill 
+              sizes="100vw" 
+              className="object-contain object-center" 
+              priority={index === 0} 
+              unoptimized={ban.src.includes('http')} 
+            />
           </Link>
         </SwiperSlide>
       ))}
@@ -40,13 +77,19 @@ export function ProductosSlider({ tipo }: { tipo: 'ofertas' | 'nuevos' }) {
 
   useEffect(() => {
     const fetchProductos = async () => {
-      // Traemos los últimos 8 productos cargados
-      const { data } = await supabase.from('productos').select('*').order('created_at', { ascending: false }).limit(8);
-      if (data) setProductos(data);
+      if (tipo === 'ofertas') {
+        // Solo trae los que tienen destacado en TRUE
+        const { data } = await supabase.from('productos').select('*').eq('destacado', true).order('created_at', { ascending: false }).limit(8);
+        if (data) setProductos(data);
+      } else {
+        // Trae los ultimos cargados
+        const { data } = await supabase.from('productos').select('*').order('created_at', { ascending: false }).limit(8);
+        if (data) setProductos(data);
+      }
     };
     fetchProductos();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [tipo]);
 
   return (
     <Swiper

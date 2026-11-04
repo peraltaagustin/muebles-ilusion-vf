@@ -2,10 +2,12 @@
 import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Search, Filter, Truck, CreditCard, ChevronRight, Loader2 } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Search, Filter, Truck, CreditCard, ChevronRight, Loader2, User, ShoppingCart, Menu, ChevronDown } from 'lucide-react';
 import Footer from '@/components/Footer';
 import dynamic from 'next/dynamic';
 import { createClient } from '@/lib/supabase';
+import { useCart } from '@/context/CartContext';
 
 const BannerSlider = dynamic(() => import('@/components/ClientCarousel').then((mod) => mod.BannerSlider), { ssr: false });
 
@@ -13,10 +15,18 @@ export default function CatalogoPage() {
   const [productos, setProductos] = useState<any[]>([]);
   const [cargando, setCargando] = useState(true);
   const supabase = createClient();
+  const searchParams = useSearchParams();
+  const queryParam = searchParams.get('q');
+  
+  const { totalItems } = useCart();
+  const router = useRouter();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [busquedaInput, setBusquedaInput] = useState(queryParam || '');
 
   // Estados de los filtros
-  const [busqueda, setBusqueda] = useState('');
+  const [busqueda, setBusqueda] = useState(queryParam || '');
   const [catSeleccionada, setCatSeleccionada] = useState('Todas');
+  const [subcatSeleccionada, setSubcatSeleccionada] = useState('Todas');
   const [marcaSeleccionada, setMarcaSeleccionada] = useState('Todas');
   const [colorSeleccionado, setColorSeleccionado] = useState('Todos');
   const [soloEnvioGratis, setSoloEnvioGratis] = useState(false);
@@ -29,47 +39,116 @@ export default function CatalogoPage() {
       setCargando(false);
     };
     fetchProductos();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Generar listas únicas para los selectores a partir de los datos reales
+  // Actualizar filtro si viene query por URL
+  useEffect(() => {
+    if (queryParam) {
+      setBusqueda(queryParam);
+      setBusquedaInput(queryParam);
+    }
+  }, [queryParam]);
+
+  const handleSearchHeader = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (busquedaInput.trim()) {
+      setBusqueda(busquedaInput.trim());
+      router.push(`/catalogo?q=${encodeURIComponent(busquedaInput.trim())}`);
+    } else {
+      setBusqueda('');
+      router.push('/catalogo');
+    }
+  };
+
+  // Listas únicas
   const categorias = ['Todas', ...Array.from(new Set(productos.map(p => p.categoria).filter(Boolean)))];
+  // Subcategorías dependen de la categoría seleccionada
+  const subcategorias = ['Todas', ...Array.from(new Set(productos.filter(p => catSeleccionada === 'Todas' || p.categoria === catSeleccionada).map(p => p.subcategoria).filter(Boolean)))];
   const marcas = ['Todas', ...Array.from(new Set(productos.map(p => p.marca).filter(Boolean)))];
-  // Simplificamos los colores asumiendo que el texto guardado sea simple por ahora
-  const colores = ['Todos', ...Array.from(new Set(productos.map(p => p.colores).filter(Boolean)))];
 
   const productosFiltrados = useMemo(() => {
     return productos.filter(prod => {
       const coincideBusqueda = prod.titulo.toLowerCase().includes(busqueda.toLowerCase());
       const coincideCat = catSeleccionada === 'Todas' || prod.categoria === catSeleccionada;
+      const coincideSubcat = subcatSeleccionada === 'Todas' || prod.subcategoria === subcatSeleccionada;
       const coincideMarca = marcaSeleccionada === 'Todas' || prod.marca === marcaSeleccionada;
-      const coincideColor = colorSeleccionado === 'Todos' || (prod.colores && prod.colores.includes(colorSeleccionado));
       const coincideEnvio = !soloEnvioGratis || prod.envio_gratis;
       const coincideCuotas = !soloCuotas || prod.cuotas;
 
-      return coincideBusqueda && coincideCat && coincideMarca && coincideColor && coincideEnvio && coincideCuotas;
+      return coincideBusqueda && coincideCat && coincideSubcat && coincideMarca && coincideEnvio && coincideCuotas;
     });
-  }, [productos, busqueda, catSeleccionada, marcaSeleccionada, colorSeleccionado, soloEnvioGratis, soloCuotas]);
+  }, [productos, busqueda, catSeleccionada, subcatSeleccionada, marcaSeleccionada, soloEnvioGratis, soloCuotas]);
+
+  // Cuando cambia la categoría, resetear subcategoría
+  const handleCatChange = (cat: string) => {
+    setCatSeleccionada(cat);
+    setSubcatSeleccionada('Todas');
+  };
 
   return (
-    <main className="min-h-screen bg-[#f5f5f5] flex flex-col">
-      <header className="bg-white border-b py-4 px-4 shadow-sm">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link href="/">
-            <Image src="/logo.png" alt="Muebles Ilusión" width={150} height={50} className="object-contain" priority />
+    <main className="min-h-screen bg-[#f5f5f5] flex flex-col relative">
+      
+      {/* HEADER IGUAL AL INICIO */}
+      <header className="bg-white py-4 relative z-50 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 flex flex-wrap justify-between items-center gap-6">
+          <Link href="/" className="flex-shrink-0">
+            <div className="relative w-52 h-16 md:w-56 md:h-18">
+               <Image src="/logo.png" alt="Muebles Ilusión" fill sizes="220px" className="object-contain" priority />
+            </div>
           </Link>
-          <div className="flex gap-4">
-             <Link href="/" className="text-gray-600 hover:text-[#e60000] font-semibold text-sm">Volver al Inicio</Link>
+          
+          <div className="flex-grow max-w-2xl mx-auto order-3 md:order-2 w-full md:w-auto">
+            <form onSubmit={handleSearchHeader} className="relative flex items-center w-full h-12 rounded-full border border-gray-300 bg-gray-50 overflow-hidden shadow-inner focus-within:bg-white focus-within:ring-2 focus-within:ring-red-200 focus-within:border-[#e60000] transition-all">
+              <button type="submit" className="ml-4 text-gray-400 hover:text-[#e60000] transition-colors">
+                <Search size={20} />
+              </button>
+              <input 
+                type="text" 
+                placeholder="Buscar productos, marcas y más..." 
+                value={busquedaInput}
+                onChange={(e) => setBusquedaInput(e.target.value)}
+                className="w-full h-full bg-transparent text-gray-800 font-medium px-3 outline-none text-sm" 
+              />
+            </form>
+          </div>
+
+          <div className="flex gap-6 text-gray-700 order-2 md:order-3">
+            <Link href="/cuenta" className="flex flex-col items-center hover:text-[#e60000] transition-colors group">
+              <div className="p-1 rounded-full group-hover:bg-red-50 transition-colors"><User size={24} strokeWidth={1.5} /></div>
+              <span className="text-[11px] font-bold mt-1 tracking-wide">Mi Cuenta</span>
+            </Link>
+            <Link href="/carrito" className="flex flex-col items-center hover:text-[#e60000] transition-colors relative group">
+              <div className="p-1 rounded-full group-hover:bg-red-50 transition-colors"><ShoppingCart size={24} strokeWidth={1.5} /></div>
+              <span className="text-[11px] font-bold mt-1 tracking-wide">Carrito</span>
+              {totalItems > 0 && (
+                <span className="absolute -top-1 right-0 bg-[#e60000] text-white text-[11px] font-bold px-1.5 py-0.5 rounded-full shadow-sm border border-white">
+                  {totalItems}
+                </span>
+              )}
+            </Link>
           </div>
         </div>
       </header>
 
-      <section className="max-w-7xl mx-auto px-4 py-6 w-full h-[150px] md:h-[250px]">
-        <BannerSlider />
-      </section>
+      <nav className="bg-white border-b relative z-40">
+        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between text-sm font-semibold py-3 overflow-x-auto hide-scrollbar whitespace-nowrap">
+          <div className="flex items-center gap-6 text-gray-700">
+             <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="flex items-center gap-2 text-[#e60000] hover:text-red-700 transition">
+               <Menu size={20} /> Todas las Categorías <ChevronDown size={16} className={`transition-transform ${isMenuOpen ? 'rotate-180' : ''}`} />
+             </button>
+          </div>
+          <Link href="/catalogo?ofertas=true" className="text-[#e60000] font-bold hover:underline ml-6 flex-shrink-0 bg-red-50 px-3 py-1.5 rounded-full">Ofertas 40 Años</Link>
+        </div>
+      </nav>
 
-      <div className="max-w-7xl mx-auto px-4 py-4 w-full flex flex-col md:flex-row gap-8">
+      {/* BANNER REAJUSTADO (Igual que en inicio) */}
+     <section className="w-full h-[25vh] min-h-[200px] sm:h-[35vh] md:h-[45vh] max-h-[400px] relative z-20 shadow-inner mb-10">
+  <BannerSlider />
+</section>
+
+      <div className="max-w-7xl mx-auto px-4 py-8 w-full flex flex-col md:flex-row gap-8 relative z-10">
         
+        {/* BARRA LATERAL CON SUBCATEGORÍAS */}
         <aside className="w-full md:w-64 flex-shrink-0 bg-white p-5 rounded-xl border border-gray-200 shadow-sm h-fit">
           <div className="flex items-center gap-2 mb-6 border-b pb-4">
             <Filter size={20} className="text-[#e60000]" />
@@ -81,7 +160,7 @@ export default function CatalogoPage() {
             <div className="flex flex-col gap-2">
               {categorias.map(cat => (
                 <button 
-                  key={cat} onClick={() => setCatSeleccionada(cat)}
+                  key={cat} onClick={() => handleCatChange(cat)}
                   className={`text-left text-sm px-2 py-1.5 rounded-md transition-colors ${catSeleccionada === cat ? 'bg-red-50 text-[#e60000] font-bold' : 'text-gray-600 hover:bg-gray-50'}`}
                 >
                   {cat}
@@ -90,9 +169,19 @@ export default function CatalogoPage() {
             </div>
           </div>
 
+          {/* SUBCATEGORÍAS DINÁMICAS */}
+          {subcategorias.length > 1 && (
+            <div className="mb-6">
+              <h3 className="font-semibold text-gray-700 mb-3 text-sm uppercase tracking-wide">Subcategoría</h3>
+              <select className="w-full border border-gray-300 rounded-md p-2 text-sm text-gray-700 outline-none focus:border-[#e60000]" value={subcatSeleccionada} onChange={(e) => setSubcatSeleccionada(e.target.value)}>
+                {subcategorias.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          )}
+
           <div className="mb-6">
             <h3 className="font-semibold text-gray-700 mb-3 text-sm uppercase tracking-wide">Marca</h3>
-            <select className="w-full border border-gray-300 rounded-md p-2 text-sm text-gray-700 outline-none" value={marcaSeleccionada} onChange={(e) => setMarcaSeleccionada(e.target.value)}>
+            <select className="w-full border border-gray-300 rounded-md p-2 text-sm text-gray-700 outline-none focus:border-[#e60000]" value={marcaSeleccionada} onChange={(e) => setMarcaSeleccionada(e.target.value)}>
               {marcas.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
           </div>
@@ -115,10 +204,6 @@ export default function CatalogoPage() {
             <span className="text-sm text-gray-500 font-medium">
               Mostrando <strong className="text-gray-900">{productosFiltrados.length}</strong> productos
             </span>
-            <div className="relative w-full sm:w-72">
-              <input type="text" placeholder="Buscar por nombre..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="w-full border border-gray-300 rounded-full py-2 px-4 pr-10 text-sm outline-none focus:border-[#e60000]" />
-              <Search size={18} className="absolute right-3 top-2.5 text-gray-400" />
-            </div>
           </div>
 
           {cargando ? (
@@ -157,7 +242,7 @@ export default function CatalogoPage() {
               <Search size={48} className="text-gray-300 mb-4" />
               <h3 className="text-xl font-bold text-gray-800 mb-2">No encontramos resultados</h3>
               <p className="text-gray-500 text-sm">Intenta ajustar los filtros o buscar con otras palabras.</p>
-              <button onClick={() => { setBusqueda(''); setCatSeleccionada('Todas'); setMarcaSeleccionada('Todas'); setColorSeleccionado('Todos'); setSoloEnvioGratis(false); setSoloCuotas(false); }} className="mt-6 bg-[#e60000] text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-red-700 transition">
+              <button onClick={() => { setBusqueda(''); setBusquedaInput(''); router.push('/catalogo'); setCatSeleccionada('Todas'); setSubcatSeleccionada('Todas'); setMarcaSeleccionada('Todas'); setSoloEnvioGratis(false); setSoloCuotas(false); }} className="mt-6 bg-[#e60000] text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-red-700 transition">
                 Limpiar Filtros
               </button>
             </div>

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { Search, User, ShoppingCart, Menu, Snowflake, Tv, Smartphone, Armchair, Laptop, ChefHat, LayoutPanelLeft, BedDouble, CreditCard, Wallet, Landmark, ChevronDown, ArrowRight } from 'lucide-react';
 import Footer from '@/components/Footer';
 import { useCart } from '@/context/CartContext';
@@ -13,6 +14,15 @@ const ProductosSlider = dynamic(() => import('@/components/ClientCarousel').then
 export default function Home() {
   const { totalItems } = useCart();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [busquedaInput, setBusquedaInput] = useState('');
+  const router = useRouter();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (busquedaInput.trim()) {
+      router.push(`/catalogo?q=${encodeURIComponent(busquedaInput.trim())}`);
+    }
+  };
 
   const categoriasCirculares = [
     { nombre: 'Aires', icono: Snowflake, href: '/catalogo?cat=Climatización' },
@@ -28,16 +38,25 @@ export default function Home() {
       <header className="bg-white py-4 relative z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 flex flex-wrap justify-between items-center gap-6">
           <Link href="/" className="flex-shrink-0">
-            <div className="relative w-40 h-12">
-               <Image src="/logo.png" alt="Muebles Ilusión" fill sizes="160px" className="object-contain" priority />
+            {/* Logo ampliado para mayor presencia */}
+            <div className="relative w-52 h-16 md:w-56 md:h-18">
+               <Image src="/logo.png" alt="Muebles Ilusión" fill sizes="220px" className="object-contain" priority />
             </div>
           </Link>
           
           <div className="flex-grow max-w-2xl mx-auto order-3 md:order-2 w-full md:w-auto">
-            <div className="relative flex items-center w-full h-12 rounded-full border border-gray-300 bg-gray-50 overflow-hidden shadow-inner focus-within:bg-white focus-within:ring-2 focus-within:ring-red-200 focus-within:border-[#e60000] transition-all">
-              <Search className="text-gray-400 ml-4" size={20} />
-              <input type="text" placeholder="Buscar productos, marcas y más..." className="w-full h-full bg-transparent text-gray-800 font-medium px-3 outline-none text-sm" />
-            </div>
+            <form onSubmit={handleSearch} className="relative flex items-center w-full h-12 rounded-full border border-gray-300 bg-gray-50 overflow-hidden shadow-inner focus-within:bg-white focus-within:ring-2 focus-within:ring-red-200 focus-within:border-[#e60000] transition-all">
+              <button type="submit" className="ml-4 text-gray-400 hover:text-[#e60000] transition-colors">
+                <Search size={20} />
+              </button>
+              <input 
+                type="text" 
+                placeholder="Buscar productos, marcas y más..." 
+                value={busquedaInput}
+                onChange={(e) => setBusquedaInput(e.target.value)}
+                className="w-full h-full bg-transparent text-gray-800 font-medium px-3 outline-none text-sm" 
+              />
+            </form>
           </div>
 
           <div className="flex gap-6 text-gray-700 order-2 md:order-3">
@@ -120,12 +139,10 @@ export default function Home() {
 
       {isMenuOpen && <div className="absolute inset-0 bg-black/50 z-30 backdrop-blur-sm transition-all" onClick={() => setIsMenuOpen(false)}></div>}
 
-      {/* Banner Principal - Altura reducida y ajustada */}
       <section className="w-full h-[25vh] min-h-[200px] sm:h-[35vh] md:h-[45vh] max-h-[400px] relative z-20 shadow-inner">
         <BannerSlider />
       </section>
 
-      {/* Categorías Circulares Mejoradas */}
       <section className="max-w-7xl mx-auto px-4 py-10 w-full">
         <h2 className="text-2xl font-black tracking-tight text-gray-900 mb-8">¿Qué estás buscando?</h2>
         <div className="flex justify-between items-center overflow-x-auto gap-4 pb-6 pt-2 px-2 snap-x hide-scrollbar">
@@ -143,7 +160,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Botones Destacados Premium */}
       <section className="max-w-7xl mx-auto px-4 py-4 w-full">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Link href="/catalogo?cat=Placares" className="group relative overflow-hidden bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 h-48 flex items-center p-8 border border-gray-700">
@@ -198,7 +214,7 @@ export default function Home() {
              <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                <Wallet size={32} strokeWidth={1.5} className="text-[#e60000]" />
              </div>
-             <span className="font-bold text-gray-900 text-lg">Crédito Crediario</span>
+             <span className="font-bold text-gray-900 text-lg">Crédito Credinex</span>
              <span className="text-sm font-medium text-gray-500 mt-1">Aprobación en el local</span>
           </div>
           <div className="hidden md:block w-px h-24 bg-gray-100"></div>
