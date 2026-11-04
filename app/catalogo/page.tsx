@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -11,7 +11,7 @@ import { useCart } from '@/context/CartContext';
 
 const BannerSlider = dynamic(() => import('@/components/ClientCarousel').then((mod) => mod.BannerSlider), { ssr: false });
 
-export default function CatalogoPage() {
+function CatalogoContent() {
   const [productos, setProductos] = useState<any[]>([]);
   const [cargando, setCargando] = useState(true);
   const supabase = createClient();
@@ -39,7 +39,7 @@ export default function CatalogoPage() {
       setCargando(false);
     };
     fetchProductos();
-  }, []);
+  }, [supabase]);
 
   // Actualizar filtro si viene query por URL
   useEffect(() => {
@@ -86,9 +86,7 @@ export default function CatalogoPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#f5f5f5] flex flex-col relative">
-      
-      {/* HEADER IGUAL AL INICIO */}
+    <>
       <header className="bg-white py-4 relative z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 flex flex-wrap justify-between items-center gap-6">
           <Link href="/" className="flex-shrink-0">
@@ -142,9 +140,9 @@ export default function CatalogoPage() {
       </nav>
 
       {/* BANNER REAJUSTADO (Igual que en inicio) */}
-     <section className="w-full h-[25vh] min-h-[200px] sm:h-[35vh] md:h-[45vh] max-h-[400px] relative z-20 shadow-inner mb-10">
-  <BannerSlider />
-</section>
+      <section className="w-full h-[25vh] min-h-[200px] sm:h-[35vh] md:h-[45vh] max-h-[400px] relative z-20 shadow-inner mb-10">
+        <BannerSlider />
+      </section>
 
       <div className="max-w-7xl mx-auto px-4 py-8 w-full flex flex-col md:flex-row gap-8 relative z-10">
         
@@ -249,6 +247,20 @@ export default function CatalogoPage() {
           )}
         </section>
       </div>
+    </>
+  );
+}
+
+export default function Catalogo() {
+  return (
+    <main className="min-h-screen bg-[#f5f5f5] flex flex-col relative">
+      <Suspense fallback={
+        <div className="flex-1 flex justify-center items-center">
+          <Loader2 className="animate-spin text-[#e60000]" size={40} />
+        </div>
+      }>
+        <CatalogoContent />
+      </Suspense>
       <div className="flex-grow"></div>
       <Footer />
     </main>
