@@ -3,7 +3,7 @@ import { useState, useMemo, useEffect, Suspense } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, Filter, Truck, CreditCard, ChevronRight, Loader2, User, ShoppingCart, Menu, ChevronDown } from 'lucide-react';
+import { Search, Filter, Truck, CreditCard, ChevronRight, Loader2, User, ShoppingCart, Menu, ChevronDown, ArrowRight } from 'lucide-react';
 import Footer from '@/components/Footer';
 import dynamic from 'next/dynamic';
 import { createClient } from '@/lib/supabase';
@@ -137,7 +137,49 @@ function CatalogoContent() {
           </div>
           <Link href="/catalogo?ofertas=true" className="text-[#e60000] font-bold hover:underline ml-6 flex-shrink-0 bg-red-50 px-3 py-1.5 rounded-full">Ofertas 40 Años</Link>
         </div>
+
+        {isMenuOpen && (
+          <div className="absolute top-full left-0 w-full bg-white border-b shadow-xl z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-2 md:grid-cols-4 gap-8">
+              <div>
+                <h4 className="text-[#e60000] font-bold mb-4 border-b border-gray-100 pb-2">Dormitorio y Hogar</h4>
+                <ul className="space-y-3 text-sm text-gray-600 font-medium">
+                  <li><Link onClick={() => setIsMenuOpen(false)} href="/catalogo?cat=Placares" className="hover:text-[#e60000] hover:translate-x-1 transition-transform inline-block">Placares y Vestidores</Link></li>
+                  <li><Link onClick={() => setIsMenuOpen(false)} href="/catalogo?cat=Colchones" className="hover:text-[#e60000] hover:translate-x-1 transition-transform inline-block">Colchones y Sommiers</Link></li>
+                  <li><Link onClick={() => setIsMenuOpen(false)} href="/catalogo?cat=Camas" className="hover:text-[#e60000] hover:translate-x-1 transition-transform inline-block">Camas y Cuchetas</Link></li>
+                  <li><Link onClick={() => setIsMenuOpen(false)} href="/catalogo?cat=Muebles" className="hover:text-[#e60000] hover:translate-x-1 transition-transform inline-block">Juegos de Comedor y Living</Link></li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="text-[#e60000] font-bold mb-4 border-b border-gray-100 pb-2">Electrodomésticos</h4>
+                <ul className="space-y-3 text-sm text-gray-600 font-medium">
+                  <li><Link onClick={() => setIsMenuOpen(false)} href="/catalogo?cat=Climatización" className="hover:text-[#e60000] hover:translate-x-1 transition-transform inline-block">Calefacción y Termotanques</Link></li>
+                  <li><Link onClick={() => setIsMenuOpen(false)} href="/catalogo?cat=Electrodomésticos" className="hover:text-[#e60000] hover:translate-x-1 transition-transform inline-block">Cocinas y Lavado</Link></li>
+                  <li><Link onClick={() => setIsMenuOpen(false)} href="/catalogo?cat=Electrodomésticos" className="hover:text-[#e60000] hover:translate-x-1 transition-transform inline-block">Pequeños Electrodomésticos</Link></li>
+                  <li><Link onClick={() => setIsMenuOpen(false)} href="/catalogo?cat=Cuidado" className="hover:text-[#e60000] hover:translate-x-1 transition-transform inline-block">Cuidado Personal</Link></li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="text-[#e60000] font-bold mb-4 border-b border-gray-100 pb-2">Tecnología y Tiempo Libre</h4>
+                <ul className="space-y-3 text-sm text-gray-600 font-medium">
+                  <li><Link onClick={() => setIsMenuOpen(false)} href="/catalogo?cat=Tecnología" className="hover:text-[#e60000] hover:translate-x-1 transition-transform inline-block">Smart TV y Audio</Link></li>
+                  <li><Link onClick={() => setIsMenuOpen(false)} href="/catalogo?cat=Tecnología" className="hover:text-[#e60000] hover:translate-x-1 transition-transform inline-block">Celulares y Notebooks</Link></li>
+                  <li><Link onClick={() => setIsMenuOpen(false)} href="/catalogo?cat=Bicicletas" className="hover:text-[#e60000] hover:translate-x-1 transition-transform inline-block">Bicicletas y Fitness</Link></li>
+                  <li><Link onClick={() => setIsMenuOpen(false)} href="/catalogo?cat=Camping" className="hover:text-[#e60000] hover:translate-x-1 transition-transform inline-block">Camping y Piletas</Link></li>
+                </ul>
+              </div>
+              <div className="bg-gradient-to-br from-red-50 to-white rounded-xl p-4 flex flex-col items-center justify-center text-center border border-red-100 shadow-sm">
+                <span className="bg-[#e60000] text-white text-[10px] font-black tracking-wider px-3 py-1 rounded-full mb-3 shadow-sm">DESTACADO</span>
+                <h5 className="font-bold text-gray-900 mb-2">Herramientas y Construcción</h5>
+                <p className="text-xs text-gray-500 mb-4 font-medium">Todo lo que necesitas para tus proyectos y remodelaciones.</p>
+                <Link onClick={() => setIsMenuOpen(false)} href="/catalogo?cat=Herramientas" className="text-sm font-bold text-[#e60000] hover:text-red-700 flex items-center gap-1">Ver productos <ArrowRight size={14}/></Link>
+              </div>
+            </div>
+          </div>
+        )}
       </nav>
+
+      {isMenuOpen && <div className="absolute inset-0 bg-black/50 z-30 backdrop-blur-sm transition-all" onClick={() => setIsMenuOpen(false)}></div>}
 
       {/* BANNER REAJUSTADO (Igual que en inicio) */}
       <section className="w-full h-[25vh] min-h-[200px] sm:h-[35vh] md:h-[45vh] max-h-[400px] relative z-20 shadow-inner mb-10">

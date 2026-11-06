@@ -71,25 +71,28 @@ export function BannerSlider() {
   );
 }
 
-export function ProductosSlider({ tipo }: { tipo: 'ofertas' | 'nuevos' }) {
+export function ProductosSlider({ tipo, categoriaFiltro }: { tipo: 'ofertas' | 'nuevos' | 'categoria', categoriaFiltro?: string }) {
   const [productos, setProductos] = useState<any[]>([]);
   const supabase = createClient();
 
   useEffect(() => {
     const fetchProductos = async () => {
       if (tipo === 'ofertas') {
-        // Solo trae los que tienen destacado en TRUE
         const { data } = await supabase.from('productos').select('*').eq('destacado', true).order('created_at', { ascending: false }).limit(8);
         if (data) setProductos(data);
+      } else if (tipo === 'categoria' && categoriaFiltro) {
+        const { data } = await supabase.from('productos').select('*').eq('categoria', categoriaFiltro).order('created_at', { ascending: false }).limit(8);
+        if (data) setProductos(data);
       } else {
-        // Trae los ultimos cargados
         const { data } = await supabase.from('productos').select('*').order('created_at', { ascending: false }).limit(8);
         if (data) setProductos(data);
       }
     };
     fetchProductos();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tipo]);
+  }, [tipo, categoriaFiltro]);
+
+  if (productos.length === 0) return <p className="text-gray-500 text-sm py-4 px-4 border-2 border-dashed rounded-lg border-gray-200 text-center mx-4 my-2">Todavía no hay productos para mostrar en esta sección.</p>;
 
   return (
     <Swiper

@@ -7,6 +7,10 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'qnotowwaqpnshffwwzrf.supabase.co',
       },
+      {
+        protocol: 'https',
+        hostname: 'acdn-us.mitiendanube.com', // Mantén este si aún lo necesitas
+      },
     ],
   },
 };

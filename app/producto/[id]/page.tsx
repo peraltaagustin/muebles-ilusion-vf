@@ -23,7 +23,6 @@ export default function ProductoPage() {
   const [colorSeleccionado, setColorSeleccionado] = useState('');
   const [agregado, setAgregado] = useState(false);
   
-  // Estado para la galería de imágenes
   const [imagenActiva, setImagenActiva] = useState('');
   const [todasLasImagenes, setTodasLasImagenes] = useState<string[]>([]);
 
@@ -33,13 +32,11 @@ export default function ProductoPage() {
       if (data) {
         setProducto(data);
         
-        // Manejo de Colores
         if (data.colores) {
           const arrColores = data.colores.split(',').map((c: string) => c.trim()).filter(Boolean);
           if (arrColores.length > 0) setColorSeleccionado(arrColores[0]);
         }
 
-        // Manejo de la Galería de Imágenes
         let imagenesCargadas: string[] = [];
         if (data.imagenes && data.imagenes.length > 0) {
           imagenesCargadas = data.imagenes;
@@ -91,12 +88,12 @@ export default function ProductoPage() {
 
   return (
     <main className="min-h-screen bg-[#ebebeb] flex flex-col">
-      {/* HEADER */}
+      {/* HEADER con Logo Grande */}
       <header className="bg-white py-4 border-b">
         <div className="max-w-7xl mx-auto px-4 flex flex-wrap justify-between items-center gap-6">
           <Link href="/" className="flex-shrink-0">
-            <div className="relative w-40 h-12">
-               <Image src="/logo.png" alt="Muebles Ilusión" fill sizes="160px" className="object-contain" priority />
+            <div className="relative w-52 h-16 md:w-56 md:h-18">
+               <Image src="/logo.png" alt="Muebles Ilusión" fill sizes="220px" className="object-contain" priority />
             </div>
           </Link>
           <div className="flex-grow max-w-2xl mx-auto order-3 md:order-2 w-full md:w-auto hidden md:block">
@@ -150,7 +147,7 @@ export default function ProductoPage() {
                 </div>
               </div>
 
-              {/* Descripción (En desktop se ve abajo de la imagen) */}
+              {/* Descripción */}
               <div className="hidden md:block border-t border-gray-200 pt-8 mt-4">
                 <h2 className="text-xl font-medium text-gray-900 mb-4">Descripción</h2>
                 <div className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">
@@ -177,18 +174,45 @@ export default function ProductoPage() {
               {/* Medios de Pago */}
               <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
                 <h3 className="text-sm font-bold text-gray-900 mb-3">Medios de Pago Aceptados</h3>
-                <div className="flex flex-col gap-2.5">
+                <div className="flex flex-col gap-3">
                   {producto.cuotas && (
-                    <div className="flex items-center gap-2 text-sm text-gray-700">
-                      <CreditCard size={18} className="text-green-600 flex-shrink-0" /> <span className="font-medium">3 Cuotas sin interés</span> con Tarjetas
+                    <div className="flex flex-col gap-1 text-sm text-gray-700">
+                      <div className="flex items-center gap-2">
+                        <CreditCard size={18} className="text-green-600 flex-shrink-0" /> <span className="font-bold">3 Cuotas sin interés</span>
+                      </div>
+                      <div className="flex gap-2 ml-6">
+                        <span className="bg-blue-900 text-white text-[10px] font-bold px-2 py-0.5 rounded">VISA</span>
+                        <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded">MASTER</span>
+                        <span className="bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded">NARANJA</span>
+                      </div>
                     </div>
                   )}
-                  <div className="flex items-center gap-2 text-sm text-gray-700">
-                    <Wallet size={18} className="text-[#e60000] flex-shrink-0" /> Crédito Crediario (Aprobación local)
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-700">
-                    <Landmark size={18} className="text-blue-600 flex-shrink-0" /> Plan SOEM (Beneficio municipal)
-                  </div>
+                  
+                  {/* CREDINEX - Redirige a WhatsApp */}
+                  <a 
+                    href={`https://wa.me/5493541336420?text=${encodeURIComponent(`Hola Muebles Ilusión. Quiero consultar los requisitos de Credinex para comprar: ${producto.titulo} (Color: ${colorSeleccionado || 'Único'}). Precio: $${producto.precio}.`)}`} 
+                    target="_blank" rel="noreferrer"
+                    className="flex items-center gap-2 text-sm text-gray-700 hover:text-[#e60000] transition-colors group cursor-pointer"
+                  >
+                    <Wallet size={18} className="text-[#e60000] flex-shrink-0 group-hover:scale-110 transition-transform" /> 
+                    <div>
+                      <p className="font-medium">Crédito Credinex</p>
+                      <p className="text-xs text-gray-500 group-hover:text-[#e60000] underline">Ver requisitos por WhatsApp</p>
+                    </div>
+                  </a>
+
+                  {/* SOEM - Redirige a WhatsApp */}
+                  <a 
+                    href={`https://wa.me/5493541336420?text=${encodeURIComponent(`Hola Muebles Ilusión. Soy empleado municipal y quiero pagar con SOEM el producto: ${producto.titulo} (Color: ${colorSeleccionado || 'Único'}). Precio: $${producto.precio}.`)}`} 
+                    target="_blank" rel="noreferrer"
+                    className="flex items-center gap-2 text-sm text-gray-700 hover:text-blue-600 transition-colors group cursor-pointer"
+                  >
+                    <Landmark size={18} className="text-blue-600 flex-shrink-0 group-hover:scale-110 transition-transform" /> 
+                    <div>
+                      <p className="font-medium">Plan SOEM (Municipal)</p>
+                      <p className="text-xs text-gray-500 group-hover:text-blue-600 underline">Enviar datos por WhatsApp</p>
+                    </div>
+                  </a>
                 </div>
               </div>
 
@@ -273,7 +297,7 @@ export default function ProductoPage() {
             </div>
           </div>
 
-          {/* Descripción (Versión Mobile: Se muestra debajo de todo en celulares) */}
+          {/* Descripción Mobile */}
           <div className="md:hidden bg-white p-4 mt-4 rounded-md shadow-sm border border-gray-100">
             <h2 className="text-lg font-bold text-gray-900 mb-3">Descripción</h2>
             <div className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">

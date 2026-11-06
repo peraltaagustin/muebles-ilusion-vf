@@ -26,7 +26,6 @@ type Producto = {
   destacado?: boolean;
 };
 
-// Nuevo tipo para los banners
 type Banner = {
   id: string;
   imagen_url: string;
@@ -34,6 +33,11 @@ type Banner = {
 
 export default function AdminDashboard() {
   const supabase = createClient();
+  const [session, setSession] = useState<any>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [cargandoAuth, setCargandoAuth] = useState(true);
   
   const [activeTab, setActiveTab] = useState<'productos' | 'pedidos' | 'configuracion'>('productos');
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -52,7 +56,6 @@ export default function AdminDashboard() {
   const [porcentajeAjuste, setPorcentajeAjuste] = useState('');
   const [tipoAjuste, setTipoAjuste] = useState<'aumento' | 'descuento'>('aumento');
 
-  // --- ESTADOS PARA BANNERS ---
   const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
   const [banners, setBanners] = useState<Banner[]>([]);
   const [cargandoBanners, setCargandoBanners] = useState(false);
@@ -97,6 +100,31 @@ export default function AdminDashboard() {
   const [urlInput, setUrlInput] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setCargandoAuth(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+    return () => subscription.unsubscribe();
+  }, [supabase.auth]);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    setCargandoAuth(true);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) setAuthError('Credenciales incorrectas o usuario no registrado');
+    setCargandoAuth(false);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
+
   const fetchProductos = async () => {
     setCargandoTabla(true);
     const { data, error } = await supabase.from('productos').select('*').order('created_at', { ascending: false });
@@ -111,23 +139,51 @@ export default function AdminDashboard() {
     setCargandoTabla(false);
   };
 
-  // --- FUNCIÓN FETCH BANNERS ---
   const fetchBanners = async () => {
     const { data } = await supabase.from('banners').select('*').order('created_at', { ascending: false });
     if (data) setBanners(data);
   };
 
   useEffect(() => { 
-    fetchProductos(); 
-    fetchBanners();
+    if(session) {
+      fetchProductos(); 
+      fetchBanners();
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [session]);
 
   useEffect(() => {
     const catActual = categoria === 'NUEVA' ? nuevaCategoria : categoria;
     const subcats = productos.filter(p => p.categoria === catActual).map(p => p.subcategoria).filter(Boolean) as string[];
     setSubcategoriasExistentes(Array.from(new Set(subcats)));
   }, [categoria, nuevaCategoria, productos]);
+
+  if (cargandoAuth) return <div className="h-screen flex items-center justify-center bg-gray-50"><Loader2 className="animate-spin text-[#e60000]" size={48} /></div>;
+  
+  if (!session) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-100">
+        <div className="bg-white p-8 rounded-xl shadow-xl w-full max-w-md border border-gray-200">
+          <div className="flex justify-center mb-6"><Image src="/logo.png" alt="Logo" width={180} height={60} className="object-contain" /></div>
+          <h2 className="text-xl font-bold text-center text-gray-900 mb-6">Acceso Administrativo</h2>
+          {authError && <p className="text-sm text-white bg-red-500 p-3 rounded mb-4 text-center font-semibold">{authError}</p>}
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Correo Electrónico</label>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="w-full border p-3 rounded outline-none focus:border-[#e60000]" placeholder="admin@mueblesilusion.com" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Contraseña</label>
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} required className="w-full border p-3 rounded outline-none focus:border-[#e60000]" placeholder="••••••••" />
+            </div>
+            <button type="submit" disabled={cargandoAuth} className="w-full bg-[#e60000] text-white p-3 rounded font-bold hover:bg-red-700 transition">
+              Ingresar al Panel
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   const productosFiltrados = productos.filter(p => {
     return (
@@ -163,14 +219,12 @@ export default function AdminDashboard() {
     setCargando(false); setIsAjusteModalOpen(false); setSeleccionados([]); setPorcentajeAjuste(''); fetchProductos();
   };
 
-  // --- FUNCIONES PARA BANNERS ---
   const handleGuardarBanner = async () => {
     if (!nuevoBannerArchivo && !nuevoBannerUrl.trim()) return;
     setCargandoBanners(true);
 
     let urlFinal = nuevoBannerUrl.trim();
 
-    // 1. Si hay archivo físico, lo subimos al bucket 'banners'
     if (nuevoBannerArchivo) {
       const fileExt = nuevoBannerArchivo.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
@@ -185,7 +239,6 @@ export default function AdminDashboard() {
       }
     }
 
-    // 2. Guardamos la URL final en la tabla
     if (urlFinal) {
       const { error } = await supabase.from('banners').insert([{ imagen_url: urlFinal }]);
       if (error) {
@@ -193,7 +246,7 @@ export default function AdminDashboard() {
       } else {
         setNuevoBannerArchivo(null);
         setNuevoBannerUrl('');
-        fetchBanners(); // Recargar lista
+        fetchBanners();
       }
     }
     setCargandoBanners(false);
@@ -201,17 +254,13 @@ export default function AdminDashboard() {
 
   const handleEliminarBanner = async (id: string, url: string) => {
     if (!window.confirm('¿Estás seguro de eliminar este banner?')) return;
-    
-    // 1. Borrar de la tabla
     const { error } = await supabase.from('banners').delete().eq('id', id);
-    
     if (!error) {
-       // 2. Borrar del bucket (Storage) si la imagen está alojada en Supabase
        if (url.includes('supabase.co')) {
           const fileName = url.split('/').pop();
           if (fileName) await supabase.storage.from('banners').remove([fileName]);
        }
-       fetchBanners(); // Recargar lista
+       fetchBanners();
     }
   };
 
@@ -242,7 +291,7 @@ export default function AdminDashboard() {
     setStock(prod.stock.toString()); setColoresSeleccionados(prod.colores ? prod.colores.split(',').map(c => c.trim()) : []);
     setEnvioGratis(prod.envio_gratis || false); setEnvioGratisLasHeras(prod.envio_gratis_las_heras || false);
     setRetiroSucursal(prod.retiro_sucursal || false); setCuotas(prod.cuotas || false);
-    setDestacado(prod.destacado || false); // <--- Cargar estado destacado
+    setDestacado(prod.destacado || false); 
     setUrlsImagen(prod.imagenes || (prod.imagen ? [prod.imagen] : [])); setArchivosImagen([]);
     setIsModalOpen(true);
   };
@@ -251,7 +300,7 @@ export default function AdminDashboard() {
     setProductoEditando(null); setTitulo(''); setDescripcion(''); setCategoria(''); setNuevaCategoria(''); setSubcategoria(''); setNuevaSubcategoria(''); setMarca(''); setNuevaMarca(''); setProveedor(''); setNuevoProveedor(''); 
     setPrecio(''); setPrecioLista(''); setPrecioTachado(''); 
     setStock(''); setColoresSeleccionados([]); setColorInput(''); setNuevoColor(''); 
-    setEnvioGratis(false); setEnvioGratisLasHeras(false); setRetiroSucursal(false); setCuotas(false); setDestacado(false); // <--- Resetear destacado
+    setEnvioGratis(false); setEnvioGratisLasHeras(false); setRetiroSucursal(false); setCuotas(false); setDestacado(false); 
     setArchivosImagen([]); setUrlsImagen([]); setUrlInput('');
   };
 
@@ -289,7 +338,7 @@ export default function AdminDashboard() {
       envio_gratis_las_heras: envioGratisLasHeras,
       retiro_sucursal: retiroSucursal, 
       cuotas,
-      destacado, // <--- Guardar valor destacado en DB
+      destacado, 
       imagen: imagenPrincipal, 
       imagenes: urlsFinales
     };
@@ -322,7 +371,6 @@ export default function AdminDashboard() {
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       
-      {/* BARRA LATERAL (SIDEBAR) */}
       <aside className="w-64 bg-white border-r border-gray-200 flex flex-col hidden md:flex">
         <div className="p-6 border-b border-gray-100 flex justify-center">
           <Image src="/logo.png" alt="Logo" width={140} height={40} className="object-contain" />
@@ -339,28 +387,24 @@ export default function AdminDashboard() {
           </button>
         </nav>
         <div className="p-4 border-t border-gray-100">
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 rounded-xl transition-colors">
+          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 rounded-xl transition-colors">
             <LogOut size={20} /> Cerrar Sesión
           </button>
         </div>
       </aside>
 
-      {/* CONTENIDO PRINCIPAL */}
       <main className="flex-1 flex flex-col h-full overflow-hidden">
         
-        {/* HEADER SUPERIOR */}
         <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-8 flex-shrink-0">
           <h1 className="text-lg font-bold text-gray-800">Panel de Control</h1>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-[#e60000] text-white flex items-center justify-center font-bold text-xs">AP</div>
-            <span className="text-sm font-semibold text-gray-700">Agustin N, Peralta</span>
+            <span className="text-sm font-semibold text-gray-700">{session.user.email}</span>
           </div>
         </header>
 
-        {/* ÁREA DE PESTAÑAS */}
         <div className="flex-1 overflow-y-auto p-8">
           
-          {/* ----- PESTAÑA: PRODUCTOS ----- */}
           {activeTab === 'productos' && (
             <div className="space-y-6 animate-in fade-in duration-300">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -378,7 +422,6 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* Filtros */}
               <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="relative">
                   <Search size={18} className="absolute left-3 top-2.5 text-gray-400" />
@@ -398,7 +441,6 @@ export default function AdminDashboard() {
                 </select>
               </div>
 
-              {/* Tabla */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
@@ -466,7 +508,6 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* ----- PESTAÑA: PEDIDOS ----- */}
           {activeTab === 'pedidos' && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center flex flex-col items-center">
               <ShoppingBag size={48} className="text-gray-300 mb-4" />
@@ -475,7 +516,6 @@ export default function AdminDashboard() {
             </div>
           )}
           
-          {/* ----- PESTAÑA: CONFIGURACIÓN ----- */}
           {activeTab === 'configuracion' && (
             <div className="space-y-6 animate-in fade-in duration-300">
               <div>
@@ -512,9 +552,6 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* ----- MODALES ----- */}
-
-          {/* MODAL: GESTIÓN DE BANNERS */}
           {isBannerModalOpen && (
             <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
               <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
@@ -524,7 +561,6 @@ export default function AdminDashboard() {
                 </div>
                 
                 <div className="p-6 overflow-y-auto max-h-[70vh]">
-                  {/* Formulario para agregar banner */}
                   <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
                     <h4 className="text-sm font-bold text-gray-800 mb-3">Agregar nuevo banner</h4>
                     <div className="flex flex-col md:flex-row gap-4 items-end">
@@ -545,7 +581,6 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  {/* Lista de banners activos */}
                   <h4 className="text-sm font-bold text-gray-800 mb-3">Banners Activos ({banners.length})</h4>
                   {banners.length === 0 ? (
                     <p className="text-sm text-gray-500 text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">No hay banners cargados actualmente.</p>
@@ -572,7 +607,6 @@ export default function AdminDashboard() {
             </div>
           )}
           
-          {/* MODAL: AJUSTE MASIVO DE PRECIOS */}
           {isAjusteModalOpen && (
             <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
               <div className="bg-white rounded-xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
@@ -599,7 +633,6 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* MODAL: FORMULARIO DE PRODUCTOS COMPLETAMENTE RESTAURADO */}
           {isModalOpen && (
             <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
               <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
@@ -611,7 +644,6 @@ export default function AdminDashboard() {
                 <div className="p-6 overflow-y-auto flex-grow bg-gray-50/50">
                   <form id="form-producto" onSubmit={handleGuardarProducto} className="space-y-8">
                     
-                    {/* 1. TÍTULO Y CLASIFICACIÓN */}
                     <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
                       <h4 className="text-sm font-bold text-[#e60000] mb-4 uppercase tracking-wider">1. Identificación del Producto</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -649,7 +681,6 @@ export default function AdminDashboard() {
                       </div>
                     </div>
 
-                    {/* 2. ADMIN Y STOCK PRIVADO (CON CANDADO) */}
                     <div className="bg-gray-100 p-5 rounded-lg border border-gray-200">
                       <h4 className="text-sm font-bold text-gray-800 mb-4 uppercase tracking-wider flex items-center gap-2"><Lock size={16} className="text-blue-600"/> 2. Datos de Administración Privados</h4>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -673,7 +704,6 @@ export default function AdminDashboard() {
                       </div>
                     </div>
 
-                    {/* 3. PRECIOS Y VARIANTES (PUBLICOS) */}
                     <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
                       <h4 className="text-sm font-bold text-[#e60000] mb-4 uppercase tracking-wider">3. Venta Pública y Variantes</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -711,7 +741,6 @@ export default function AdminDashboard() {
                       </div>
                     </div>
 
-                    {/* 4. BENEFICIOS Y DESTACADOS */}
                     <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
                       <h4 className="text-sm font-bold text-[#e60000] mb-4 uppercase tracking-wider">4. Beneficios y Logística</h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -720,7 +749,6 @@ export default function AdminDashboard() {
                         <label className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50"><input type="checkbox" checked={envioGratisLasHeras} onChange={e => setEnvioGratisLasHeras(e.target.checked)} className="w-5 h-5 accent-[#e60000]" /> <span className="text-sm font-medium text-gray-800">Envío Gratis Las Heras</span></label>
                         <label className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50"><input type="checkbox" checked={retiroSucursal} onChange={e => setRetiroSucursal(e.target.checked)} className="w-5 h-5 accent-[#e60000]" /> <span className="text-sm font-medium text-gray-800">Retiro en Sucursal</span></label>
                         
-                        {/* Nuevo check para Destacado */}
                         <label className="flex items-center gap-3 p-3 border border-yellow-300 bg-yellow-50 rounded-lg hover:bg-yellow-100 col-span-1 sm:col-span-2 mt-2">
                           <input type="checkbox" checked={destacado} onChange={e => setDestacado(e.target.checked)} className="w-5 h-5 accent-yellow-600" /> 
                           <div>
@@ -731,7 +759,6 @@ export default function AdminDashboard() {
                       </div>
                     </div>
 
-                    {/* 5. MULTIMEDIA Y DESCRIPCION */}
                     <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
                       <h4 className="text-sm font-bold text-[#e60000] mb-4 uppercase tracking-wider">5. Detalles y Galería</h4>
                       

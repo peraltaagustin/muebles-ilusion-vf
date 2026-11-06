@@ -38,7 +38,6 @@ export default function Home() {
       <header className="bg-white py-4 relative z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 flex flex-wrap justify-between items-center gap-6">
           <Link href="/" className="flex-shrink-0">
-            {/* Logo ampliado para mayor presencia */}
             <div className="relative w-52 h-16 md:w-56 md:h-18">
                <Image src="/logo.png" alt="Muebles Ilusión" fill sizes="220px" className="object-contain" priority />
             </div>
@@ -195,12 +194,43 @@ export default function Home() {
 
       <section className="max-w-7xl mx-auto px-4 py-8 w-full">
         <div className="flex justify-between items-center mb-8">
+          <h2 className="text-2xl font-black tracking-tight text-gray-900">Colchones y Sommiers</h2>
+        </div>
+        <ProductosSlider tipo="categoria" categoriaFiltro="Colchones" />
+      </section>
+
+      <section className="max-w-7xl mx-auto px-4 py-8 w-full">
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-2xl font-black tracking-tight text-gray-900">Placares y Vestidores</h2>
+        </div>
+        <ProductosSlider tipo="categoria" categoriaFiltro="Placares" />
+      </section>
+
+      <section className="max-w-7xl mx-auto px-4 py-8 w-full">
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-2xl font-black tracking-tight text-gray-900">Electrodomésticos</h2>
+        </div>
+        <ProductosSlider tipo="categoria" categoriaFiltro="Electrodomésticos" />
+      </section>
+
+      <section className="max-w-7xl mx-auto px-4 py-8 w-full">
+        <div className="flex justify-between items-center mb-8">
           <h2 className="text-2xl font-black tracking-tight text-gray-900">Nuevos Ingresos</h2>
         </div>
         <ProductosSlider tipo="nuevos" />
       </section>
 
-      <section className="max-w-7xl mx-auto px-4 py-16 w-full mb-8">
+      {/* Segundo Banner Dinámico controlado por Admin */}
+ {/* Segundo Banner Dinámico controlado por Admin */}
+      <section className="w-full h-[20vh] min-h-[150px] sm:h-[25vh] max-h-[300px] relative z-20 shadow-inner mt-8">
+        <BannerSlider />
+      </section>
+
+      {/* --- ESPACIADOR FORZADO INFALIBLE --- */}
+      <div className="w-full h-16 sm:h-24 bg-transparent block clear-both"></div>
+
+      {/* --- SECCIÓN DE TARJETAS Y BENEFICIOS --- */}
+      <section className="max-w-7xl mx-auto px-4 pb-16 w-full mb-8 relative z-10">
         <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] border border-gray-100 p-8 flex flex-col md:flex-row justify-around items-center gap-8 md:gap-4">
           <div className="flex flex-col items-center text-center group">
              <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
@@ -232,3 +262,4 @@ export default function Home() {
     </main>
   );
 }
+  
