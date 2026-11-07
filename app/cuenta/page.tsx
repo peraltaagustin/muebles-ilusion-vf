@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase';
 import Footer from '@/components/Footer';
 import { useCart } from '@/context/CartContext';
 
-export default function CuentaPage() {
+function CuentaContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const fromCart = searchParams.get('from') === 'cart';
@@ -127,7 +127,7 @@ export default function CuentaPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f5f5f5] flex flex-col">
+    <>
       <header className="bg-white py-4 border-b shadow-sm relative z-10">
         <div className="max-w-7xl mx-auto px-4 flex justify-between items-center">
           <Link href="/" className="flex-shrink-0">
@@ -143,7 +143,6 @@ export default function CuentaPage() {
 
       <div className="flex-grow flex items-center justify-center p-4 py-8">
         {!session ? (
-          // PANTALLA DE LOGIN / REGISTRO
           <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md border border-gray-100">
             <div className="text-center mb-6">
               <h1 className="text-2xl font-bold text-gray-900">{isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}</h1>
@@ -181,7 +180,6 @@ export default function CuentaPage() {
             </div>
           </div>
         ) : (
-          // PERFIL DE USUARIO LOGUEADO
           <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-1">
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center">
@@ -268,6 +266,16 @@ export default function CuentaPage() {
           </div>
         )}
       </div>
+    </>
+  );
+}
+
+export default function CuentaPage() {
+  return (
+    <main className="min-h-screen bg-[#f5f5f5] flex flex-col relative">
+      <Suspense fallback={<div className="flex-1 flex justify-center items-center"><Loader2 className="animate-spin text-[#e60000]" size={40} /></div>}>
+        <CuentaContent />
+      </Suspense>
       <Footer />
     </main>
   );
