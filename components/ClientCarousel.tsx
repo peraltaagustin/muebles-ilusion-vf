@@ -12,18 +12,29 @@ import { createClient } from '@/lib/supabase';
 interface BannerDB {
   id: string;
   imagen_url: string;
+  ubicacion?: string;
 }
 
-export function BannerSlider() {
+export function BannerSlider({ ubicacion = 'superior' }: { ubicacion?: 'superior' | 'inferior' }) {
   const [banners, setBanners] = useState<{ id: string | number, src: string, alt: string, link: string }[]>([]);
   const supabase = createClient();
 
   useEffect(() => {
     const fetchBanners = async () => {
-      const { data } = await supabase.from('banners').select('*').order('created_at', { ascending: false });
+      // Filtrar por ubicación (superior o inferior)
+      const { data, error } = await supabase.from('banners').select('*').eq('ubicacion', ubicacion).order('created_at', { ascending: false });
       
-      if (data && data.length > 0) {
-        const bannersFormat = data.map((b: BannerDB) => ({
+      // Manejar el caso donde la columna 'ubicacion' no exista todavía o haya error
+      let filteredData = data;
+      if (error && error.code === '42703') { // Columna no existe
+        console.warn("La columna 'ubicacion' no existe en la tabla banners. Mostrando todos los banners arriba.");
+        const fallbackQuery = await supabase.from('banners').select('*').order('created_at', { ascending: false });
+        if(ubicacion === 'superior') filteredData = fallbackQuery.data;
+        else filteredData = [];
+      }
+
+      if (filteredData && filteredData.length > 0) {
+        const bannersFormat = filteredData.map((b: BannerDB) => ({
           id: b.id,
           src: b.imagen_url,
           alt: "Banner Promocional",
@@ -31,16 +42,20 @@ export function BannerSlider() {
         }));
         setBanners(bannersFormat);
       } else {
-        setBanners([
-          { id: 1, src: "/banner-ofertas.png", alt: "Ofertas Increíbles", link: "/catalogo" },
-          { id: 2, src: "/Especial-Placares.png", alt: "Especial Placares", link: "/catalogo?cat=Placares" },
-          { id: 3, src: "/banner-taurus.png", alt: "Colchones Taurus", link: "/catalogo?cat=Colchones" },
-        ]);
+        // Fallbacks por defecto si no hay nada en la BD para esa ubicación
+        if (ubicacion === 'superior') {
+          setBanners([
+            { id: 1, src: "/banner-ofertas.png", alt: "Ofertas Increíbles", link: "/catalogo" },
+            { id: 2, src: "/Especial-Placares.png", alt: "Especial Placares", link: "/catalogo?cat=Placares" }
+          ]);
+        } else {
+           setBanners([{ id: 3, src: "/banner-taurus.png", alt: "Colchones Taurus", link: "/catalogo?cat=Colchones" }]);
+        }
       }
     };
     fetchBanners();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [ubicacion]);
 
   if (banners.length === 0) return <div className="w-full h-full bg-gray-100 flex items-center justify-center animate-pulse">Cargando banners...</div>;
 
@@ -48,19 +63,19 @@ export function BannerSlider() {
    <Swiper
       modules={[Autoplay, Pagination, Navigation]}
       pagination={{ clickable: true }}
-      navigation
+      navigation={banners.length > 1}
       autoplay={{ delay: 5000 }}
-      className="w-full h-[180px] sm:h-[250px] md:h-[300px] lg:h-[380px]"
+      className="w-full h-full"
     >
       {banners.map((ban, index) => (
-        <SwiperSlide key={ban.id} className="relative w-full h-full bg-gray-100 flex items-center justify-center overflow-hidden">
+        <SwiperSlide key={ban.id} className="relative w-full h-full bg-white flex items-center justify-center overflow-hidden">
           <Link href={ban.link} className="relative w-full h-full block">
             <Image 
               src={ban.src} 
               alt={ban.alt} 
               fill 
               sizes="100vw" 
-              className="object-contain object-center" 
+              className={ubicacion === 'superior' ? "object-contain md:object-cover" : "object-cover"} 
               priority={index === 0} 
               unoptimized={ban.src.includes('http')} 
             />
@@ -81,7 +96,8 @@ export function ProductosSlider({ tipo, categoriaFiltro }: { tipo: 'ofertas' | '
         const { data } = await supabase.from('productos').select('*').eq('destacado', true).order('created_at', { ascending: false }).limit(8);
         if (data) setProductos(data);
       } else if (tipo === 'categoria' && categoriaFiltro) {
-        const { data } = await supabase.from('productos').select('*').eq('categoria', categoriaFiltro).order('created_at', { ascending: false }).limit(8);
+        // ILIKE ignora mayúsculas/minúsculas para evitar problemas de tipeo
+        const { data } = await supabase.from('productos').select('*').ilike('categoria', `%${categoriaFiltro}%`).order('created_at', { ascending: false }).limit(8);
         if (data) setProductos(data);
       } else {
         const { data } = await supabase.from('productos').select('*').order('created_at', { ascending: false }).limit(8);
@@ -101,7 +117,7 @@ export function ProductosSlider({ tipo, categoriaFiltro }: { tipo: 'ofertas' | '
       spaceBetween={20}
       slidesPerView={1}
       breakpoints={{ 480: { slidesPerView: 2 }, 768: { slidesPerView: 3 }, 1024: { slidesPerView: 4 } }}
-      className="pb-4"
+      className="pb-4 px-1"
     >
       {productos.map((prod) => (
         <SwiperSlide key={prod.id}>

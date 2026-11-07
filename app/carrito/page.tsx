@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link';
 import Image from 'next/image';
-import { Trash2, ChevronLeft, ShieldCheck } from 'lucide-react';
+import { Trash2, ChevronLeft, ShieldCheck, Search, User, ShoppingCart } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import Footer from '@/components/Footer';
 
@@ -9,9 +9,51 @@ export default function CarritoPage() {
   const { cart, removeFromCart, updateQuantity, totalPrice, totalItems } = useCart();
 
   return (
-    <main className="min-h-screen bg-[#ebebeb] flex flex-col pt-8">
-      <div className="max-w-6xl mx-auto px-4 w-full flex-grow">
-        
+    <main className="min-h-screen bg-[#f5f5f5] flex flex-col relative">
+      
+      {/* HEADER IDÉNTICO AL INICIO */}
+      <header className="bg-white py-4 relative z-50 shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 flex flex-wrap justify-between items-center gap-6">
+          <Link href="/" className="flex-shrink-0">
+            <div className="relative w-52 h-16 md:w-56 md:h-18">
+               <Image src="/logo.png" alt="Muebles Ilusión" fill sizes="220px" className="object-contain" priority />
+            </div>
+          </Link>
+          
+          <div className="flex-grow max-w-2xl mx-auto order-3 md:order-2 w-full md:w-auto">
+            {/* Buscador inactivo visualmente para mantener el layout */}
+            <div className="relative flex items-center w-full h-12 rounded-full border border-gray-300 bg-gray-50 overflow-hidden shadow-inner opacity-50 cursor-not-allowed">
+              <button disabled className="ml-4 text-gray-400">
+                <Search size={20} />
+              </button>
+              <input 
+                type="text" 
+                disabled
+                placeholder="Busca productos en el catálogo..." 
+                className="w-full h-full bg-transparent text-gray-800 font-medium px-3 outline-none text-sm cursor-not-allowed" 
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-6 text-gray-700 order-2 md:order-3">
+            <Link href="/cuenta" className="flex flex-col items-center hover:text-[#e60000] transition-colors group">
+              <div className="p-1 rounded-full group-hover:bg-red-50 transition-colors"><User size={24} strokeWidth={1.5} /></div>
+              <span className="text-[11px] font-bold mt-1 tracking-wide">Mi Cuenta</span>
+            </Link>
+            <Link href="/carrito" className="flex flex-col items-center text-[#e60000] transition-colors relative group">
+              <div className="p-1 rounded-full bg-red-50 transition-colors"><ShoppingCart size={24} strokeWidth={1.5} /></div>
+              <span className="text-[11px] font-bold mt-1 tracking-wide">Carrito</span>
+              {totalItems > 0 && (
+                <span className="absolute -top-1 right-0 bg-[#e60000] text-white text-[11px] font-bold px-1.5 py-0.5 rounded-full shadow-sm border border-white">
+                  {totalItems}
+                </span>
+              )}
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-6xl mx-auto px-4 w-full flex-grow pt-8">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900">Carrito de compras</h1>
           <Link href="/catalogo" className="text-blue-600 font-semibold hover:text-blue-800 flex items-center gap-1 text-sm">
@@ -103,12 +145,12 @@ export default function CarritoPage() {
                 <span className="text-2xl font-bold text-gray-900">${totalPrice.toLocaleString('es-AR')}</span>
               </div>
 
-              <button 
-                disabled={cart.length === 0}
-                className="w-full bg-[#3483fa] hover:bg-[#2968c8] text-white py-4 rounded-md font-semibold text-base transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+              <Link 
+                href="/cuenta?from=cart"
+                className={`w-full block text-center bg-[#3483fa] hover:bg-[#2968c8] text-white py-4 rounded-md font-semibold text-base transition-colors ${cart.length === 0 ? 'opacity-50 pointer-events-none' : ''}`}
               >
-                Continuar compra
-              </button>
+                Continuar a Pagar / Envíos
+              </Link>
 
               <div className="mt-6 flex gap-2 text-xs text-gray-500 justify-center items-center bg-gray-50 p-3 rounded-md">
                 <ShieldCheck size={16} className="text-green-600 flex-shrink-0" />
@@ -118,7 +160,7 @@ export default function CarritoPage() {
           </div>
         </div>
       </div>
-
+      <div className="pb-16"></div>
       <Footer />
     </main>
   );

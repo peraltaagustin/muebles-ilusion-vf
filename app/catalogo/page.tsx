@@ -28,7 +28,6 @@ function CatalogoContent() {
   const [catSeleccionada, setCatSeleccionada] = useState('Todas');
   const [subcatSeleccionada, setSubcatSeleccionada] = useState('Todas');
   const [marcaSeleccionada, setMarcaSeleccionada] = useState('Todas');
-  const [colorSeleccionado, setColorSeleccionado] = useState('Todos');
   const [soloEnvioGratis, setSoloEnvioGratis] = useState(false);
   const [soloCuotas, setSoloCuotas] = useState(false);
 
@@ -41,7 +40,6 @@ function CatalogoContent() {
     fetchProductos();
   }, [supabase]);
 
-  // Actualizar filtro si viene query por URL
   useEffect(() => {
     if (queryParam) {
       setBusqueda(queryParam);
@@ -60,11 +58,16 @@ function CatalogoContent() {
     }
   };
 
-  // Listas únicas
   const categorias = ['Todas', ...Array.from(new Set(productos.map(p => p.categoria).filter(Boolean)))];
-  // Subcategorías dependen de la categoría seleccionada
   const subcategorias = ['Todas', ...Array.from(new Set(productos.filter(p => catSeleccionada === 'Todas' || p.categoria === catSeleccionada).map(p => p.subcategoria).filter(Boolean)))];
-  const marcas = ['Todas', ...Array.from(new Set(productos.map(p => p.marca).filter(Boolean)))];
+  
+  // MARCAS FILTRADAS DINÁMICAMENTE POR CATEGORÍA
+  const marcas = ['Todas', ...Array.from(new Set(
+    productos
+      .filter(p => catSeleccionada === 'Todas' || p.categoria === catSeleccionada)
+      .map(p => p.marca)
+      .filter(Boolean)
+  ))];
 
   const productosFiltrados = useMemo(() => {
     return productos.filter(prod => {
@@ -79,10 +82,10 @@ function CatalogoContent() {
     });
   }, [productos, busqueda, catSeleccionada, subcatSeleccionada, marcaSeleccionada, soloEnvioGratis, soloCuotas]);
 
-  // Cuando cambia la categoría, resetear subcategoría
   const handleCatChange = (cat: string) => {
     setCatSeleccionada(cat);
     setSubcatSeleccionada('Todas');
+    setMarcaSeleccionada('Todas'); // Resetear la marca al cambiar categoría
   };
 
   return (
@@ -181,14 +184,12 @@ function CatalogoContent() {
 
       {isMenuOpen && <div className="absolute inset-0 bg-black/50 z-30 backdrop-blur-sm transition-all" onClick={() => setIsMenuOpen(false)}></div>}
 
-      {/* BANNER REAJUSTADO (Igual que en inicio) */}
       <section className="w-full h-[25vh] min-h-[200px] sm:h-[35vh] md:h-[45vh] max-h-[400px] relative z-20 shadow-inner mb-10">
-        <BannerSlider />
+        <BannerSlider ubicacion="superior" />
       </section>
 
       <div className="max-w-7xl mx-auto px-4 py-8 w-full flex flex-col md:flex-row gap-8 relative z-10">
         
-        {/* BARRA LATERAL CON SUBCATEGORÍAS */}
         <aside className="w-full md:w-64 flex-shrink-0 bg-white p-5 rounded-xl border border-gray-200 shadow-sm h-fit">
           <div className="flex items-center gap-2 mb-6 border-b pb-4">
             <Filter size={20} className="text-[#e60000]" />
@@ -209,7 +210,6 @@ function CatalogoContent() {
             </div>
           </div>
 
-          {/* SUBCATEGORÍAS DINÁMICAS */}
           {subcategorias.length > 1 && (
             <div className="mb-6">
               <h3 className="font-semibold text-gray-700 mb-3 text-sm uppercase tracking-wide">Subcategoría</h3>

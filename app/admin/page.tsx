@@ -29,6 +29,7 @@ type Producto = {
 type Banner = {
   id: string;
   imagen_url: string;
+  ubicacion: 'superior' | 'inferior';
 };
 
 export default function AdminDashboard() {
@@ -62,6 +63,7 @@ export default function AdminDashboard() {
   const [nuevoBannerArchivo, setNuevoBannerArchivo] = useState<File | null>(null);
   const [nuevoBannerUrl, setNuevoBannerUrl] = useState('');
   const bannerFileInputRef = useRef<HTMLInputElement>(null);
+  const [nuevoBannerUbicacion, setNuevoBannerUbicacion] = useState<'superior'|'inferior'>('superior');
 
   const [categoriasExistentes, setCategoriasExistentes] = useState<string[]>([]);
   const [subcategoriasExistentes, setSubcategoriasExistentes] = useState<string[]>([]);
@@ -194,6 +196,8 @@ export default function AdminDashboard() {
     );
   });
 
+  const bannersFiltrados = banners.filter(b => b.ubicacion === nuevoBannerUbicacion);
+
   const toggleSeleccion = (id: string) => setSeleccionados(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   
   const toggleSeleccionarTodos = () => {
@@ -240,7 +244,7 @@ export default function AdminDashboard() {
     }
 
     if (urlFinal) {
-      const { error } = await supabase.from('banners').insert([{ imagen_url: urlFinal }]);
+      const { error } = await supabase.from('banners').insert([{ imagen_url: urlFinal, ubicacion: nuevoBannerUbicacion }]);
       if (error) {
         alert('Error al guardar el banner en base de datos: ' + error.message);
       } else {
@@ -525,11 +529,21 @@ export default function AdminDashboard() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">Banners de Inicio</h3>
-                  <p className="text-sm text-gray-500 mb-4">Agrega o quita las imágenes promocionales que se muestran en el carrusel de la página principal.</p>
-                  <button onClick={() => setIsBannerModalOpen(true)} className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-50 text-sm font-semibold text-[#e60000] transition-colors">
-                    <ImageIcon size={18} /> Gestionar Banners
-                  </button>
+                  <h3 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">Gestión de Banners</h3>
+                  <p className="text-sm text-gray-500 mb-4">Administra las imágenes del carrusel principal (arriba) y el banner promocional secundario (abajo).</p>
+                  <div className="flex gap-4">
+                    <button onClick={() => { setNuevoBannerUbicacion('superior'); setIsBannerModalOpen(true); }} className="flex-1 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-semibold text-[#e60000] flex justify-center items-center gap-2">
+                      <ImageIcon size={18} /> Banners Superiores
+                    </button>
+                    <button onClick={() => { setNuevoBannerUbicacion('inferior'); setIsBannerModalOpen(true); }} className="flex-1 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-semibold text-[#e60000] flex justify-center items-center gap-2">
+                      <ImageIcon size={18} /> Banner Inferior
+                    </button>
+                  </div>
+                  
+                  <div className="mt-6 border-t pt-4">
+                    <h3 className="text-sm font-bold text-gray-900 mb-2">Administrar Categorías</h3>
+                    <p className="text-xs text-gray-500 mb-3">Si necesitas renombrar o eliminar una categoría, hazlo directamente desde los productos asignados a ella.</p>
+                  </div>
                 </div>
 
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
@@ -556,7 +570,7 @@ export default function AdminDashboard() {
             <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
               <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
                 <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-                  <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2"><ImageIcon size={20} className="text-[#e60000]"/> Gestionar Banners Principales</h3>
+                  <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2"><ImageIcon size={20} className="text-[#e60000]"/> Gestionar Banners ({nuevoBannerUbicacion})</h3>
                   <button onClick={() => setIsBannerModalOpen(false)} className="text-gray-400 hover:text-gray-700"><X size={20} /></button>
                 </div>
                 
@@ -581,12 +595,12 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  <h4 className="text-sm font-bold text-gray-800 mb-3">Banners Activos ({banners.length})</h4>
-                  {banners.length === 0 ? (
-                    <p className="text-sm text-gray-500 text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">No hay banners cargados actualmente.</p>
+                  <h4 className="text-sm font-bold text-gray-800 mb-3">Banners Activos en esta ubicación ({bannersFiltrados.length})</h4>
+                  {bannersFiltrados.length === 0 ? (
+                    <p className="text-sm text-gray-500 text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">No hay banners cargados para esta ubicación.</p>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {banners.map((banner) => (
+                      {bannersFiltrados.map((banner) => (
                         <div key={banner.id} className="relative group border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
                           <div className="relative w-full h-32 bg-gray-100">
                             <Image src={banner.imagen_url} alt="Banner Promocional" fill className="object-cover" unoptimized={banner.imagen_url.includes('http')} />

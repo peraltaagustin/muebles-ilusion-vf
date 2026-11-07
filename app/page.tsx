@@ -203,7 +203,7 @@ export default function Home() {
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-2xl font-black tracking-tight text-gray-900">Placares y Vestidores</h2>
         </div>
-        <ProductosSlider tipo="categoria" categoriaFiltro="Placares" />
+        <ProductosSlider tipo="categoria" categoriaFiltro="Placares y Vestidores" />
       </section>
 
       <section className="max-w-7xl mx-auto px-4 py-8 w-full">
@@ -220,17 +220,15 @@ export default function Home() {
         <ProductosSlider tipo="nuevos" />
       </section>
 
-      {/* Segundo Banner Dinámico controlado por Admin */}
- {/* Segundo Banner Dinámico controlado por Admin */}
-      <section className="w-full h-[20vh] min-h-[150px] sm:h-[25vh] max-h-[300px] relative z-20 shadow-inner mt-8">
-        <BannerSlider />
+      {/* Segundo Banner Dinámico controlado por Admin con espaciado y responsive corregido */}
+      <section className="w-full max-w-7xl mx-auto px-4 mt-12 mb-16 relative z-10">
+        <div className="w-full aspect-[21/9] sm:aspect-[3/1] max-h-[300px] relative rounded-2xl overflow-hidden shadow-lg border border-gray-200">
+          <BannerSlider ubicacion="inferior" />
+        </div>
       </section>
 
-      {/* --- ESPACIADOR FORZADO INFALIBLE --- */}
-      <div className="w-full h-16 sm:h-24 bg-transparent block clear-both"></div>
-
       {/* --- SECCIÓN DE TARJETAS Y BENEFICIOS --- */}
-      <section className="max-w-7xl mx-auto px-4 pb-16 w-full mb-8 relative z-10">
+      <section className="max-w-7xl mx-auto px-4 pb-16 w-full relative z-10">
         <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] border border-gray-100 p-8 flex flex-col md:flex-row justify-around items-center gap-8 md:gap-4">
           <div className="flex flex-col items-center text-center group">
              <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
